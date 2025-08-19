@@ -1,4 +1,7 @@
 // ===== Imports =====
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import mysql from "mysql";
 import cors from "cors";
@@ -17,6 +20,10 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+// Backend Port
+const PORT = process.env.PORT || 8800;
+
+
 // ===== App =====
 const app = express();
 
@@ -24,11 +31,18 @@ const app = express();
 app.use("/uploads", express.static(uploadsDir));
 
 // CORS + JSON
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:3000"], // your React dev server
+    origin: allowedOrigins,
     methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-token"],
     optionsSuccessStatus: 200,
   })
 );
@@ -43,11 +57,12 @@ app.use((req, res, next) => {
 
 // ===== MySQL =====
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Donkal@9953",
-  database: "NovaScotiaAle",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
 });
+
 db.connect((err) => {
   if (err) {
     console.error("Database connection failed:", err);
@@ -71,9 +86,9 @@ app.get("/", (req, res) => {
   res.json("Hey, I am the backend server..............!");
 });
 
-// LIST
+// LIST accomodation (approved only)
 app.get("/accomodation", (req, res) => {
-  db.query("SELECT * FROM accomodation ORDER BY id DESC", (err, rows) => {
+  db.query("SELECT * FROM accomodation WHERE status='approved' ORDER BY id DESC", (err, rows) => {
     if (err) {
       console.error("Error fetching accomodation:", err);
       return res.status(500).json({ error: "Database Error!" });
@@ -82,86 +97,82 @@ app.get("/accomodation", (req, res) => {
   });
 });
 
-// CREATE (with image upload)
+
+// CREATE accomodation
 app.post("/accomodation", upload.single("photo"), (req, res) => {
-  const { title, descriptions, locations, price } = req.body;
+  const { title, descriptions, locations, price, contact_email } = req.body;
+  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   const sql = `
-    INSERT INTO accomodation (title, descriptions, locations, price, photos)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO accomodation (title, descriptions, locations, price, contact_email, photos)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
-
-  db.query(
-    sql,
-    [title, descriptions, locations, Number(price), photoPath],
-    (err, result) => {
-      if (err) {
-        console.error("Insert error:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
-      res.json({ id: result.insertId, message: "Accommodation added" });
+  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
+    if (err) {
+      console.error("Insert error:", err);
+      return res.status(500).json({ error: "Database error" });
     }
-  );
+    res.json({ id: result.insertId, status: "pending", message: "Accommodation submitted for review" });
+  });
 });
 
 
 // ===== JOBS =====
 
-// LIST jobs
+// LIST jobs (approved only)
 app.get("/jobs", (req, res) => {
-  db.query("SELECT * FROM jobs ORDER BY id DESC", (err, rows) => {
+  db.query("SELECT * FROM jobs WHERE status='approved' ORDER BY id DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: "Database Error!" });
     res.json(rows);
   });
 });
 
-// CREATE job (optional image)
+
+// CREATE job
 app.post("/jobs", upload.single("photo"), (req, res) => {
-  const { title, descriptions, locations, price } = req.body;
+  const { title, descriptions, locations, price, contact_email } = req.body;
+  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   const sql = `
-    INSERT INTO jobs (title, descriptions, locations, price, photos)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO jobs (title, descriptions, locations, price, contact_email, photos)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
-
-  db.query(sql, [title, descriptions, locations, Number(price), photoPath], (err, result) => {
+  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
     if (err) {
       console.error("Insert jobs error:", err);
       return res.status(500).json({ error: "Database error" });
     }
-    res.json({ id: result.insertId, message: "Job added" });
+    res.json({ id: result.insertId, status: "pending", message: "Job submitted for review" });
   });
 });
 
-
 // ===== RIDES =====
-
-// LIST rides
+// LIST rides (approved only)
 app.get("/rides", (req, res) => {
-  db.query("SELECT * FROM rides ORDER BY id DESC", (err, rows) => {
+  db.query("SELECT * FROM rides WHERE status='approved' ORDER BY id DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: "Database Error!" });
     res.json(rows);
   });
 });
 
-// CREATE ride (optional image)
+// CREATE ride
 app.post("/rides", upload.single("photo"), (req, res) => {
-  const { title, descriptions, locations, price } = req.body;
+  const { title, descriptions, locations, price, contact_email } = req.body;
+  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   const sql = `
-    INSERT INTO rides (title, descriptions, locations, price, photos)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO rides (title, descriptions, locations, price, contact_email, photos)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
-
-  db.query(sql, [title, descriptions, locations, Number(price), photoPath], (err, result) => {
+  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
     if (err) {
       console.error("Insert rides error:", err);
       return res.status(500).json({ error: "Database error" });
     }
-    res.json({ id: result.insertId, message: "Ride added" });
+    res.json({ id: result.insertId, status: "pending", message: "Ride submitted for review" });
   });
 });
 
@@ -175,7 +186,65 @@ app.delete("/accomodation/:id", (req, res) => {
   });
 });
 
+
+// ===== Admin-lite auth middleware =====
+function adminLite(req, res, next) {
+  const token = req.headers["x-admin-token"];
+  if (!token || token !== process.env.ADMIN_DASH_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// ===== Admin-lite: list pending across all tables =====
+app.get("/admin-lite/pending", adminLite, (req, res) => {
+  const sql = `
+    SELECT 'accomodation' AS kind, id, title, contact_email, created_time AS created_at
+    FROM accomodation WHERE status='pending'
+    UNION ALL
+    SELECT 'jobs' AS kind, id, title, contact_email, created_time
+    FROM jobs WHERE status='pending'
+    UNION ALL
+    SELECT 'rides' AS kind, id, title, contact_email, created_time
+    FROM rides WHERE status='pending'
+    ORDER BY created_at DESC
+    LIMIT 200
+  `;
+  db.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: "DB error" });
+    res.json(rows);
+  });
+});
+
+// ===== Admin-lite: approve/reject =====
+app.patch("/admin-lite/:kind/:id/status", adminLite, (req, res) => {
+  const { kind, id } = req.params;
+  const { status } = req.body || {};
+  if (!["approved", "rejected"].includes(status))
+    return res.status(400).json({ error: "Bad status" });
+
+  const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
+  db.query(`UPDATE ${table} SET status=? WHERE id=?`, [status, id], (err, r) => {
+    if (err) return res.status(500).json({ error: "DB error" });
+    if (r.affectedRows === 0) return res.status(404).json({ error: "Not found" });
+    res.json({ ok: true });
+  });
+});
+
+// ===== Admin-lite: delete row =====
+app.delete("/admin-lite/:kind/:id", adminLite, (req, res) => {
+  const { kind, id } = req.params;
+  const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
+  db.query(`DELETE FROM ${table} WHERE id=?`, [id], (err, r) => {
+    if (err) return res.status(500).json({ error: "DB error" });
+    if (r.affectedRows === 0) return res.status(404).json({ error: "Not found" });
+    res.json({ ok: true });
+  });
+});
+
+
+
 // ===== Start server =====
-app.listen(8800, () => {
-  console.log("Server is running on http://localhost:8800");
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

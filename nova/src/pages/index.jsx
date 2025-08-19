@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Alert from "react-bootstrap/Alert";
 import "../components/AlertFade.css";
+import HomeCarousel from "../components/HomeCarousel";
+import ReactDOM from "react-dom/client";
 
+
+ 
 function Index() {
   // ✅ STATE
   const [form, setForm] = useState({
@@ -10,6 +14,7 @@ function Index() {
     descriptions: "",
     locations: "",
     price: "",
+    contact_email: "",
   });
 
   const [fade, setFade] = useState(false);
@@ -64,6 +69,7 @@ function Index() {
       fd.append("descriptions", form.descriptions);
       fd.append("locations", form.locations);
       fd.append("price", form.price);
+      fd.append("contact_email", form.contact_email)
       if (photo) fd.append("photo", photo);
 
       const res = await fetch(endpoint, { method: "POST", body: fd });
@@ -76,7 +82,7 @@ function Index() {
           variant: "success",
         });
 
-        setForm({ title: "", descriptions: "", locations: "", price: "" });
+        setForm({ title: "", descriptions: "", locations: "", price: "" , contact_email: "",});
         setPhoto(null);
       } else {
         setStatus({
@@ -93,7 +99,7 @@ function Index() {
     <div>
       {/*header*/}
       <div className="super_container">
-        +MN {/*Header */}
+        {/*Header */}
         <div className="menu trans_500">
           <div className="menu_content d-flex flex-column align-items-center justify-content-center text-center">
             <div className="menu_close_container">
@@ -127,12 +133,13 @@ function Index() {
         <div className="home">
           {"{"}/*Home Slider */{"}"}
           <div className="home_slider_container">
+                <HomeCarousel />
             <div className="owl-carousel owl-theme home_slider">
               <div className="owl-item home_slider_item">
                 <div
                   className="home_slider_background"
                   style={{
-                    backgroundImage: "url(assets/images/home_slider.jpg)",
+                    backgroundImage: "url(/assets/images/home_slider.jpg)",
                   }}
                 />
                 <div className="home_slider_content text-center">
@@ -446,6 +453,20 @@ function Index() {
                       </div>
                     </div>
 
+                    <div className="col-lg-4">
+                      <div className="search_item">
+                        <div>Contact Email</div>
+                        <input
+                          name="contact_email"
+                          value={form.contact_email}
+                          onChange={onChange}
+                          type="email"
+                          className="destination search_input"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div className="col-lg-3 mt-2">
                       <button className="button search_button" type="submit">
                         Post <span />
@@ -541,15 +562,27 @@ function Index() {
                       </div>
                     </div>
 
+                    <div className="col-lg-4">
+                      <div className="search_item">
+                        <div>Contact Email</div>
+                        <input
+                          name="contact_email"
+                          value={form.contact_email}
+                          onChange={onChange}
+                          type="email"
+                          className="destination search_input"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div className="col-lg-3 mt-2">
                       <button className="button search_button" type="submit">
                         Post <span />
                         <span />
                         <span />
                       </button>
-                      <div className="mt-2">
-                       
-                      </div>
+                      <div className="mt-2"></div>
                     </div>
                   </div>
                 </form>
@@ -638,15 +671,27 @@ function Index() {
                       </div>
                     </div>
 
+                    <div className="col-lg-4">
+                      <div className="search_item">
+                        <div>Contact Email</div>
+                        <input
+                          name="contact_email"
+                          value={form.contact_email}
+                          onChange={onChange}
+                          type="email"
+                          className="destination search_input"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div className="col-lg-3 mt-2">
                       <button className="button search_button" type="submit">
                         Post <span />
                         <span />
                         <span />
                       </button>
-                      <div className="mt-2">
-                        
-                      </div>
+                      <div className="mt-2"></div>
                     </div>
                   </div>
                 </form>
@@ -690,12 +735,10 @@ function Index() {
                   <div className="intro_date">Available Now</div>
                   <div className="button intro_button">
                     <div className="button_bcg" />
-                    <a href="#">
+                    <Link to="/explore/rooms">
                       Explore Rooms
-                      <span />
-                      <span />
-                      <span />
-                    </a>
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                   <div className="intro_center text-center">
                     <h1>Comfortable Rooms</h1>
@@ -723,12 +766,10 @@ function Index() {
                   <div className="intro_date">Hiring Now</div>
                   <div className="button intro_button">
                     <div className="button_bcg" />
-                    <a href="#">
+                    <Link to="/explore/jobs">
                       Explore Jobs
-                      <span />
-                      <span />
-                      <span />
-                    </a>
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                   <div className="intro_center text-center">
                     <h1>Find a Job</h1>
@@ -756,12 +797,10 @@ function Index() {
                   <div className="intro_date">Available Now</div>
                   <div className="button intro_button">
                     <div className="button_bcg" />
-                    <a href="#">
+                    <Link to="/explore/rides">
                       Explore Rides
-                      <span />
-                      <span />
-                      <span />
-                    </a>
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                   <div className="intro_center text-center">
                     <h1>Find a Ride</h1>
@@ -802,12 +841,12 @@ function Index() {
                     <div className="test_item">
                       <div className="test_image">
                         <img
-                          src="assets/images/test_1.jpg"
+                          src="/assets/images/test_1.jpg"
                           alt="https://unsplash.com/@anniegray"
                         />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/backpack.png" alt="" />
+                        <img src="/assets/images/backpack.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -831,12 +870,12 @@ function Index() {
                     <div className="test_item">
                       <div className="test_image">
                         <img
-                          src="assets/images/test_2.jpg"
+                          src="/assets/images/test_2.jpg"
                           alt="https://unsplash.com/@tschax"
                         />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/island_t.png" alt="" />
+                        <img src="/assets/images/island_t.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -860,12 +899,12 @@ function Index() {
                     <div className="test_item">
                       <div className="test_image">
                         <img
-                          src="assets/images/test_3.jpg"
+                          src="/assets/images/test_3.jpg"
                           alt="https://unsplash.com/@seefromthesky"
                         />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/kayak.png" alt="" />
+                        <img src="/assets/images/kayak.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -888,10 +927,10 @@ function Index() {
                   <div className="owl-item">
                     <div className="test_item">
                       <div className="test_image">
-                        <img src="assets/images/test_2.jpg" alt="" />
+                        <img src="/assets/images/test_2.jpg" alt="" />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/island_t.png" alt="" />
+                        <img src="/assets/images/island_t.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -914,10 +953,10 @@ function Index() {
                   <div className="owl-item">
                     <div className="test_item">
                       <div className="test_image">
-                        <img src="assets/images/test_1.jpg" alt="" />
+                        <img src="/assets/images/test_1.jpg" alt="" />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/backpack.png" alt="" />
+                        <img src="/assets/images/backpack.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -940,10 +979,10 @@ function Index() {
                   <div className="owl-item">
                     <div className="test_item">
                       <div className="test_image">
-                        <img src="assets/images/test_3.jpg" alt="" />
+                        <img src="/assets/images/test_3.jpg" alt="" />
                       </div>
                       <div className="test_icon">
-                        <img src="assets/images/kayak.png" alt="" />
+                        <img src="/assets/images/kayak.png" alt="" />
                       </div>
                       <div className="test_content_container">
                         <div className="test_content">
@@ -1057,7 +1096,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_1.png"
+                    src="/assets/images/trend_1.png"
                     alt="https://unsplash.com/@fransaraco"
                   />
                 </div>
@@ -1075,7 +1114,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_2.png"
+                    src="/assets/images/trend_2.png"
                     alt="https://unsplash.com/@grovemade"
                   />
                 </div>
@@ -1093,7 +1132,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_3.png"
+                    src="/assets/images/trend_3.png"
                     alt="https://unsplash.com/@jbriscoe"
                   />
                 </div>
@@ -1111,7 +1150,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_4.png"
+                    src="/assets/images/trend_4.png"
                     alt="https://unsplash.com/@oowgnuj"
                   />
                 </div>
@@ -1129,7 +1168,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_5.png"
+                    src="/assets/images/trend_5.png"
                     alt="https://unsplash.com/@mindaugas"
                   />
                 </div>
@@ -1147,7 +1186,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_6.png"
+                    src="/assets/images/trend_6.png"
                     alt="https://unsplash.com/@itsnwa"
                   />
                 </div>
@@ -1165,7 +1204,7 @@ function Index() {
               <div className="trending_item clearfix">
                 <div className="trending_image">
                   <img
-                    src="assets/images/trend_7.png"
+                    src="/assets/images/trend_7.png"
                     alt="https://unsplash.com/@rktkn"
                   />
                 </div>
@@ -1207,7 +1246,7 @@ function Index() {
       <div className="contact">
         <div
           className="contact_background"
-          style={{ backgroundImage: "url(assets/images/contact.png)" }}
+          style={{ backgroundImage: "url(/assets/images/contact.png)" }}
         />
         <div className="container">
           <div className="row">
