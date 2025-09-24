@@ -3,12 +3,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import mysql from "mysql";
+import pkg from "pg"; // use pg instead of mysql
 import cors from "cors";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+
+const { Pool } = pkg;
 
 // ===== Setup paths (__dirname in ESM) =====
 const __filename = fileURLToPath(import.meta.url);
@@ -23,11 +25,10 @@ if (!fs.existsSync(uploadsDir)) {
 // Backend Port
 const PORT = process.env.PORT || 8800;
 
-
 // ===== App =====
 const app = express();
 
-// Static for uploaded files (must be after app = express())
+// Static for uploaded files
 app.use("/uploads", express.static(uploadsDir));
 
 // CORS + JSON
@@ -48,27 +49,16 @@ app.use(
 );
 app.use(express.json());
 
-
-// (optional) tiny logger
+// tiny logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-// ===== MySQL =====
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error("Database connection failed:", err);
-    return;
-  }
-  console.log("Connected to MySQL database.");
+// ===== Postgres (Neon) =====
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }, // required for Neon
 });
 
 // ===== Multer (file uploads) =====
@@ -83,109 +73,129 @@ const upload = multer({ storage });
 
 // ===== Routes =====
 app.get("/", (req, res) => {
-  res.json("Hey, I am the backend server..............!");
+  res.json("Hey, I am the backend server connected to Neon 🚀!");
 });
 
 // LIST accomodation (approved only)
-app.get("/accomodation", (req, res) => {
-  db.query("SELECT * FROM accomodation WHERE status='approved' ORDER BY id DESC", (err, rows) => {
-    if (err) {
-      console.error("Error fetching accomodation:", err);
-      return res.status(500).json({ error: "Database Error!" });
-    }
+app.get("/accomodation", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM accomodation WHERE status='approved' ORDER BY id DESC"
+    );
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Error fetching accomodation:", err);
+    res.status(500).json({ error: "Database Error!" });
+  }
 });
-
 
 // CREATE accomodation
-app.post("/accomodation", upload.single("photo"), (req, res) => {
+app.post("/accomodation", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
   if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
-  const sql = `
-    INSERT INTO accomodation (title, descriptions, locations, price, contact_email, photos)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
-    if (err) {
-      console.error("Insert error:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
-    res.json({ id: result.insertId, status: "pending", message: "Accommodation submitted for review" });
-  });
-});
+  try {
+    const sql = `
+      INSERT INTO accomodation (title, descriptions, locations, price, contact_email, photos, status)
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      RETURNING id
+    `;
+    const values = [title, descriptions, locations, Number(price) || null, contact_email, photoPath];
+    const result = await pool.query(sql, values);
 
+    res.json({ id: result.rows[0].id, status: "pending", message: "Accommodation submitted for review" });
+  } catch (err) {
+    console.error("Insert error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 // ===== JOBS =====
-
-// LIST jobs (approved only)
-app.get("/jobs", (req, res) => {
-  db.query("SELECT * FROM jobs WHERE status='approved' ORDER BY id DESC", (err, rows) => {
-    if (err) return res.status(500).json({ error: "Database Error!" });
+app.get("/jobs", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM jobs WHERE status='approved' ORDER BY id DESC"
+    );
     res.json(rows);
-  });
+  } catch {
+    res.status(500).json({ error: "Database Error!" });
+  }
 });
 
-
-// CREATE job
-app.post("/jobs", upload.single("photo"), (req, res) => {
+app.post("/jobs", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
   if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
-  const sql = `
-    INSERT INTO jobs (title, descriptions, locations, price, contact_email, photos)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
-    if (err) {
-      console.error("Insert jobs error:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
-    res.json({ id: result.insertId, status: "pending", message: "Job submitted for review" });
-  });
+  try {
+    const sql = `
+      INSERT INTO jobs (title, descriptions, locations, price, contact_email, photos, status)
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      RETURNING id
+    `;
+    const result = await pool.query(sql, [
+      title,
+      descriptions,
+      locations,
+      Number(price) || null,
+      contact_email,
+      photoPath,
+    ]);
+    res.json({ id: result.rows[0].id, status: "pending", message: "Job submitted for review" });
+  } catch (err) {
+    console.error("Insert jobs error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 // ===== RIDES =====
-// LIST rides (approved only)
-app.get("/rides", (req, res) => {
-  db.query("SELECT * FROM rides WHERE status='approved' ORDER BY id DESC", (err, rows) => {
-    if (err) return res.status(500).json({ error: "Database Error!" });
+app.get("/rides", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM rides WHERE status='approved' ORDER BY id DESC"
+    );
     res.json(rows);
-  });
+  } catch {
+    res.status(500).json({ error: "Database Error!" });
+  }
 });
 
-// CREATE ride
-app.post("/rides", upload.single("photo"), (req, res) => {
+app.post("/rides", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
   if (!contact_email) return res.status(400).json({ error: "contact_email required" });
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
-  const sql = `
-    INSERT INTO rides (title, descriptions, locations, price, contact_email, photos)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.query(sql, [title, descriptions, locations, Number(price) || null, contact_email, photoPath], (err, result) => {
-    if (err) {
-      console.error("Insert rides error:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
-    res.json({ id: result.insertId, status: "pending", message: "Ride submitted for review" });
-  });
+  try {
+    const sql = `
+      INSERT INTO rides (title, descriptions, locations, price, contact_email, photos, status)
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      RETURNING id
+    `;
+    const result = await pool.query(sql, [
+      title,
+      descriptions,
+      locations,
+      Number(price) || null,
+      contact_email,
+      photoPath,
+    ]);
+    res.json({ id: result.rows[0].id, status: "pending", message: "Ride submitted for review" });
+  } catch (err) {
+    console.error("Insert rides error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
-
-
-// DELETE
-app.delete("/accomodation/:id", (req, res) => {
-  db.query("DELETE FROM accomodation WHERE id = ?", [req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: err.sqlMessage });
+// DELETE accomodation
+app.delete("/accomodation/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM accomodation WHERE id = $1", [req.params.id]);
     res.json({ message: "Accomodation has been deleted successfully." });
-  });
+  } catch (err) {
+    res.status(500).json({ error: "DB error" });
+  }
 });
-
 
 // ===== Admin-lite auth middleware =====
 function adminLite(req, res, next) {
@@ -196,8 +206,8 @@ function adminLite(req, res, next) {
   next();
 }
 
-// ===== Admin-lite: list pending across all tables =====
-app.get("/admin-lite/pending", adminLite, (req, res) => {
+// Admin-lite pending
+app.get("/admin-lite/pending", adminLite, async (req, res) => {
   const sql = `
     SELECT 'accomodation' AS kind, id, title, contact_email, created_time AS created_at
     FROM accomodation WHERE status='pending'
@@ -210,39 +220,45 @@ app.get("/admin-lite/pending", adminLite, (req, res) => {
     ORDER BY created_at DESC
     LIMIT 200
   `;
-  db.query(sql, (err, rows) => {
-    if (err) return res.status(500).json({ error: "DB error" });
+  try {
+    const { rows } = await pool.query(sql);
     res.json(rows);
-  });
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
-// ===== Admin-lite: approve/reject =====
-app.patch("/admin-lite/:kind/:id/status", adminLite, (req, res) => {
+// Admin-lite approve/reject
+app.patch("/admin-lite/:kind/:id/status", adminLite, async (req, res) => {
   const { kind, id } = req.params;
   const { status } = req.body || {};
   if (!["approved", "rejected"].includes(status))
     return res.status(400).json({ error: "Bad status" });
 
   const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
-  db.query(`UPDATE ${table} SET status=? WHERE id=?`, [status, id], (err, r) => {
-    if (err) return res.status(500).json({ error: "DB error" });
-    if (r.affectedRows === 0) return res.status(404).json({ error: "Not found" });
+
+  try {
+    const r = await pool.query(`UPDATE ${table} SET status=$1 WHERE id=$2`, [status, id]);
+    if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
-  });
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
-// ===== Admin-lite: delete row =====
-app.delete("/admin-lite/:kind/:id", adminLite, (req, res) => {
+// Admin-lite delete
+app.delete("/admin-lite/:kind/:id", adminLite, async (req, res) => {
   const { kind, id } = req.params;
   const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
-  db.query(`DELETE FROM ${table} WHERE id=?`, [id], (err, r) => {
-    if (err) return res.status(500).json({ error: "DB error" });
-    if (r.affectedRows === 0) return res.status(404).json({ error: "Not found" });
+
+  try {
+    const r = await pool.query(`DELETE FROM ${table} WHERE id=$1`, [id]);
+    if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
-  });
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
 });
-
-
 
 // ===== Start server =====
 app.listen(PORT, () => {
