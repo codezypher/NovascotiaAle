@@ -43,7 +43,7 @@ $(document).ready(function()
 		setHeader();
 	});
 
-	initHomeSlider();
+	// initHomeSlider();
 	initMenu();
 	initSearch();
 	initCtaSlider();
@@ -92,96 +92,96 @@ $(document).ready(function()
 
 	*/
 
-	function initHomeSlider()
-	{
-		if($('.home_slider').length)
-		{
-			var homeSlider = $('.home_slider');
+	// function initHomeSlider()
+	// {
+	// 	if($('.home_slider').length)
+	// 	{
+	// 		var homeSlider = $('.home_slider');
 
-			homeSlider.owlCarousel(
-			{
-				items:1,
-				loop:true,
-				autoplay:false,
-				smartSpeed:1200,
-				dotsContainer:'main_slider_custom_dots'
-			});
+	// 		homeSlider.owlCarousel(
+	// 		{
+	// 			items:1,
+	// 			loop:true,
+	// 			autoplay:false,
+	// 			smartSpeed:1200,
+	// 			dotsContainer:'main_slider_custom_dots'
+	// 		});
 
-			/* Custom nav events */
-			if($('.home_slider_prev').length)
-			{
-				var prev = $('.home_slider_prev');
+	// 		/* Custom nav events */
+	// 		if($('.home_slider_prev').length)
+	// 		{
+	// 			var prev = $('.home_slider_prev');
 
-				prev.on('click', function()
-				{
-					homeSlider.trigger('prev.owl.carousel');
-				});
-			}
+	// 			prev.on('click', function()
+	// 			{
+	// 				homeSlider.trigger('prev.owl.carousel');
+	// 			});
+	// 		}
 
-			if($('.home_slider_next').length)
-			{
-				var next = $('.home_slider_next');
+	// 		if($('.home_slider_next').length)
+	// 		{
+	// 			var next = $('.home_slider_next');
 
-				next.on('click', function()
-				{
-					homeSlider.trigger('next.owl.carousel');
-				});
-			}
+	// 			next.on('click', function()
+	// 			{
+	// 				homeSlider.trigger('next.owl.carousel');
+	// 			});
+	// 		}
 
-			/* Custom dots events */
-			if($('.home_slider_custom_dot').length)
-			{
-				$('.home_slider_custom_dot').on('click', function()
-				{
-					$('.home_slider_custom_dot').removeClass('active');
-					$(this).addClass('active');
-					homeSlider.trigger('to.owl.carousel', [$(this).index(), 300]);
-				});
-			}
+	// 		/* Custom dots events */
+	// 		if($('.home_slider_custom_dot').length)
+	// 		{
+	// 			$('.home_slider_custom_dot').on('click', function()
+	// 			{
+	// 				$('.home_slider_custom_dot').removeClass('active');
+	// 				$(this).addClass('active');
+	// 				homeSlider.trigger('to.owl.carousel', [$(this).index(), 300]);
+	// 			});
+	// 		}
 
-			/* Change active class for dots when slide changes by nav or touch */
-			homeSlider.on('changed.owl.carousel', function(event)
-			{
-				$('.home_slider_custom_dot').removeClass('active');
-				$('.home_slider_custom_dots li').eq(event.page.index).addClass('active');
-			});	
+	// 		/* Change active class for dots when slide changes by nav or touch */
+	// 		homeSlider.on('changed.owl.carousel', function(event)
+	// 		{
+	// 			$('.home_slider_custom_dot').removeClass('active');
+	// 			$('.home_slider_custom_dots li').eq(event.page.index).addClass('active');
+	// 		});	
 
-			// add animate.css class(es) to the elements to be animated
-			function setAnimation ( _elem, _InOut )
-			{
-				// Store all animationend event name in a string.
-				// cf animate.css documentation
-				var animationEndEvent = 'webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend';
+	// 		// add animate.css class(es) to the elements to be animated
+	// 		function setAnimation ( _elem, _InOut )
+	// 		{
+	// 			// Store all animationend event name in a string.
+	// 			// cf animate.css documentation
+	// 			var animationEndEvent = 'webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend';
 
-				_elem.each ( function ()
-				{
-					var $elem = $(this);
-					var $animationType = 'animated ' + $elem.data( 'animation-' + _InOut );
+	// 			_elem.each ( function ()
+	// 			{
+	// 				var $elem = $(this);
+	// 				var $animationType = 'animated ' + $elem.data( 'animation-' + _InOut );
 
-					$elem.addClass($animationType).one(animationEndEvent, function ()
-					{
-						$elem.removeClass($animationType); // remove animate.css Class at the end of the animations
-					});
-				});
-			}
+	// 				$elem.addClass($animationType).one(animationEndEvent, function ()
+	// 				{
+	// 					$elem.removeClass($animationType); // remove animate.css Class at the end of the animations
+	// 				});
+	// 			});
+	// 		}
 
-			// Fired before current slide change
-			homeSlider.on('change.owl.carousel', function(event)
-			{
-				var $currentItem = $('.home_slider_item', homeSlider).eq(event.item.index);
-				var $elemsToanim = $currentItem.find("[data-animation-out]");
-				setAnimation ($elemsToanim, 'out');
-			});
+	// 		// Fired before current slide change
+	// 		homeSlider.on('change.owl.carousel', function(event)
+	// 		{
+	// 			var $currentItem = $('.home_slider_item', homeSlider).eq(event.item.index);
+	// 			var $elemsToanim = $currentItem.find("[data-animation-out]");
+	// 			setAnimation ($elemsToanim, 'out');
+	// 		});
 
-			// Fired after current slide has been changed
-			homeSlider.on('changed.owl.carousel', function(event)
-			{
-				var $currentItem = $('.home_slider_item', homeSlider).eq(event.item.index);
-				var $elemsToanim = $currentItem.find("[data-animation-in]");
-				setAnimation ($elemsToanim, 'in');
-			})
-		}
-	}
+	// 		// Fired after current slide has been changed
+	// 		homeSlider.on('changed.owl.carousel', function(event)
+	// 		{
+	// 			var $currentItem = $('.home_slider_item', homeSlider).eq(event.item.index);
+	// 			var $elemsToanim = $currentItem.find("[data-animation-in]");
+	// 			setAnimation ($elemsToanim, 'in');
+	// 		})
+	// 	}
+	// }
 
 	/* 
 

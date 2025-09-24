@@ -1,3 +1,62 @@
+.home_slider_container { position: relative; }
+
+/* Put our hosts on top and clickable */
+.home_nav_host,
+.home_dots_host {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;     /* container ignores... */
+}
+.home_nav_host .owl-prev,
+.home_nav_host .owl-next,
+.home_dots_host .owl-dot {
+  pointer-events: auto;     /* ...but buttons receive clicks */
+}
+
+/* Arrow positioning */
+.home_nav_host {
+  top: 50%;
+  left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  transform: translateY(-50%);
+  padding: 0 14px;
+}
+.home_nav_host .owl-prev,
+.home_nav_host .owl-next {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Dots bottom center */
+.home_dots_host {
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex; gap: 8px; justify-content: center;
+}
+
+/* The full-screen background must never block clicks */
+.home_slider_background {
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* If your theme adds extra “bubbles”/overlays, neuter them */
+.home_slider_nav, .home_slider_prev, .home_slider_next,
+.orange-blob, .shape, .home_overlay, .circle-decor {
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* If Owl decides to hide controls, force visible while debugging */
+.home_slider .owl-nav.disabled,
+.home_slider .owl-dots.disabled {
+  display: block !important;
+  opacity: 1 !important;
+}
+
+
 .App {
   text-align: center;
 }
