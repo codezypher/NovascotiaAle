@@ -292,7 +292,7 @@ function Index() {
               </svg>
             </div>
             {/*Home Slider Dots */}
-            <div className="home_slider_dots">
+            {/* <div className="home_slider_dots">
               <ul
                 id="home_slider_custom_dots"
                 className="home_slider_custom_dots"
@@ -310,7 +310,7 @@ function Index() {
                   03.
                 </li>
               </ul>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -453,7 +453,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-4">
+                    <div className="col-lg-4 mt-2">
                       <div className="search_item">
                         <div>Contact Email</div>
                         <input
@@ -467,7 +467,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-3 mt-2">
+                    <div className="col-lg-12 mt-2" style={{display:"flex",justifyContent:"end"}}>
                       <button className="button search_button" type="submit">
                         Post <span />
                         <span />
@@ -562,7 +562,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-4">
+                    <div className="col-lg-4 mt-2">
                       <div className="search_item">
                         <div>Contact Email</div>
                         <input
@@ -576,7 +576,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-3 mt-2">
+                    <div className="col-lg-12 mt-2" style={{display:"flex",justifyContent:"end"}}>
                       <button className="button search_button" type="submit">
                         Post <span />
                         <span />
@@ -671,7 +671,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-4">
+                    <div className="col-lg-4 mt-2">
                       <div className="search_item">
                         <div>Contact Email</div>
                         <input
@@ -685,7 +685,7 @@ function Index() {
                       </div>
                     </div>
 
-                    <div className="col-lg-3 mt-2">
+                    <div className="col-lg-12 mt-2" style={{display:"flex",justifyContent:"end"}}>
                       <button className="button search_button" type="submit">
                         Post <span />
                         <span />
@@ -733,15 +733,9 @@ function Index() {
                 />
                 <div className="intro_item_content d-flex flex-column align-items-center justify-content-center">
                   <div className="intro_date">Available Now</div>
-                  <div className="button intro_button">
-                    <div className="button_bcg" />
-                    <Link to="/explore/rooms">
-                      Explore Rooms
-                      <span /> <span /> <span />
-                    </Link>
-                  </div>
+                  
                   <div className="intro_center text-center">
-                    <h1>Comfortable Rooms</h1>
+                    <h1>Find a Rooms</h1>
                     <div className="intro_price">From $500 per month</div>
                     <div className="rating rating_4">
                       <i className="fa fa-star" />
@@ -750,6 +744,13 @@ function Index() {
                       <i className="fa fa-star" />
                       <i className="fa fa-star" />
                     </div>
+                  </div>
+                  <div className="button intro_button mt-5">
+                    <div className="button_bcg" />
+                    <Link to="/explore/rooms">
+                      Explore Rooms
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -764,13 +765,7 @@ function Index() {
                 />
                 <div className="intro_item_content d-flex flex-column align-items-center justify-content-center">
                   <div className="intro_date">Hiring Now</div>
-                  <div className="button intro_button">
-                    <div className="button_bcg" />
-                    <Link to="/explore/jobs">
-                      Explore Jobs
-                      <span /> <span /> <span />
-                    </Link>
-                  </div>
+                 
                   <div className="intro_center text-center">
                     <h1>Find a Job</h1>
                     <div className="intro_price">Various Roles</div>
@@ -781,6 +776,13 @@ function Index() {
                       <i className="fa fa-star" />
                       <i className="fa fa-star" />
                     </div>
+                  </div>
+                   <div className="button intro_button mt-5">
+                    <div className="button_bcg" />
+                    <Link to="/explore/jobs">
+                      Explore Jobs
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -795,13 +797,7 @@ function Index() {
                 />
                 <div className="intro_item_content d-flex flex-column align-items-center justify-content-center">
                   <div className="intro_date">Available Now</div>
-                  <div className="button intro_button">
-                    <div className="button_bcg" />
-                    <Link to="/explore/rides">
-                      Explore Rides
-                      <span /> <span /> <span />
-                    </Link>
-                  </div>
+                 
                   <div className="intro_center text-center">
                     <h1>Find a Ride</h1>
                     <div className="intro_price">Shared or Private</div>
@@ -812,6 +808,13 @@ function Index() {
                       <i className="fa fa-star" />
                       <i className="fa fa-star" />
                     </div>
+                  </div>
+                   <div className="button intro_button mt-5">
+                    <div className="button_bcg" />
+                    <Link to="/explore/rides">
+                      Explore Rides
+                      <span /> <span /> <span />
+                    </Link>
                   </div>
                 </div>
               </div>
