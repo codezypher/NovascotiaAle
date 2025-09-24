@@ -84,8 +84,8 @@ app.get("/accomodation", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching accomodation:", err);
-    res.status(500).json({ error: "Database Error!" });
+    console.error("Error fetching accomodation:", err.message, err.stack);
+    res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
 
@@ -106,8 +106,8 @@ app.post("/accomodation", upload.single("photo"), async (req, res) => {
 
     res.json({ id: result.rows[0].id, status: "pending", message: "Accommodation submitted for review" });
   } catch (err) {
-    console.error("Insert error:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Insert accomodation error:", err.message, err.stack);
+    res.status(500).json({ error: "Database error", details: err.message });
   }
 });
 
@@ -118,8 +118,9 @@ app.get("/jobs", async (req, res) => {
       "SELECT * FROM jobs WHERE status='approved' ORDER BY id DESC"
     );
     res.json(rows);
-  } catch {
-    res.status(500).json({ error: "Database Error!" });
+  } catch (err) {
+    console.error("Error fetching jobs:", err.message, err.stack);
+    res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
 
@@ -144,8 +145,8 @@ app.post("/jobs", upload.single("photo"), async (req, res) => {
     ]);
     res.json({ id: result.rows[0].id, status: "pending", message: "Job submitted for review" });
   } catch (err) {
-    console.error("Insert jobs error:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Insert jobs error:", err.message, err.stack);
+    res.status(500).json({ error: "Database error", details: err.message });
   }
 });
 
@@ -156,8 +157,9 @@ app.get("/rides", async (req, res) => {
       "SELECT * FROM rides WHERE status='approved' ORDER BY id DESC"
     );
     res.json(rows);
-  } catch {
-    res.status(500).json({ error: "Database Error!" });
+  } catch (err) {
+    console.error("Error fetching rides:", err.message, err.stack);
+    res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
 
@@ -182,8 +184,8 @@ app.post("/rides", upload.single("photo"), async (req, res) => {
     ]);
     res.json({ id: result.rows[0].id, status: "pending", message: "Ride submitted for review" });
   } catch (err) {
-    console.error("Insert rides error:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Insert rides error:", err.message, err.stack);
+    res.status(500).json({ error: "Database error", details: err.message });
   }
 });
 
@@ -193,7 +195,8 @@ app.delete("/accomodation/:id", async (req, res) => {
     await pool.query("DELETE FROM accomodation WHERE id = $1", [req.params.id]);
     res.json({ message: "Accomodation has been deleted successfully." });
   } catch (err) {
-    res.status(500).json({ error: "DB error" });
+    console.error("Delete accomodation error:", err.message, err.stack);
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
@@ -223,8 +226,9 @@ app.get("/admin-lite/pending", adminLite, async (req, res) => {
   try {
     const { rows } = await pool.query(sql);
     res.json(rows);
-  } catch {
-    res.status(500).json({ error: "DB error" });
+  } catch (err) {
+    console.error("Error fetching pending items:", err.message, err.stack);
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
@@ -241,8 +245,9 @@ app.patch("/admin-lite/:kind/:id/status", adminLite, async (req, res) => {
     const r = await pool.query(`UPDATE ${table} SET status=$1 WHERE id=$2`, [status, id]);
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "DB error" });
+  } catch (err) {
+    console.error("Error updating status:", err.message, err.stack);
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
@@ -255,8 +260,9 @@ app.delete("/admin-lite/:kind/:id", adminLite, async (req, res) => {
     const r = await pool.query(`DELETE FROM ${table} WHERE id=$1`, [id]);
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "DB error" });
+  } catch (err) {
+    console.error("Error deleting row:", err.message, err.stack);
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
