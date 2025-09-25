@@ -1,21 +1,19 @@
 // src/pages/Explore.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchList } from "../lib/api";
 import "./cards.css";
 
+// Map route param → title labels
 const TITLES = { rooms: "Rooms", jobs: "Jobs", rides: "Rides" };
 const PRICE_LABEL = { rooms: "Price", jobs: "Salary", rides: "Fare" };
 
+// Use environment variable (from Vercel or .env.local)
+// fallback to localhost for dev
 const API_BASE =
-  (typeof import.meta !== "undefined" &&
-  import.meta.env &&
-  import.meta.env.VITE_API_BASE
-    ? import.meta.env.VITE_API_BASE
-    : process.env.REACT_APP_API_BASE || "http://localhost:8800"
-  ).replace(/\/+$/, "");
+  process.env.REACT_APP_API_URL?.replace(/\/+$/, "") ||
+  "https://novascotiaale.onrender.com";
 
-// Convert backend row → UI-friendly shape and build image URL
+// Convert backend row → UI-friendly object
 function normalize(raw) {
   const title = raw.title ?? raw.name ?? "Untitled";
   const desc = raw.desc ?? raw.descriptions ?? raw.description ?? "";
@@ -23,13 +21,13 @@ function normalize(raw) {
   const location = raw.location ?? raw.locations ?? "";
   const contact_email = raw.contact_email ?? raw.email ?? "";
 
-  // Include 'photos' (your backend column), plus common fallbacks
-  const rawImage = raw.photos ?? raw.image ?? raw.image_url ?? raw.photo ?? raw.img ?? "";
+  const rawImage =
+    raw.photos ?? raw.image ?? raw.image_url ?? raw.photo ?? raw.img ?? "";
 
   const imgSrc = (() => {
-    if (!rawImage) return "/placeholder.png";                // must exist in /public
-    if (/^https?:\/\//i.test(rawImage)) return rawImage;     // absolute URL already
-    const cleaned = String(rawImage).replace(/^\/+/, "");    // strip leading slashes
+    if (!rawImage) return "/placeholder.png"; // must exist in /public
+    if (/^https?:\/\//i.test(rawImage)) return rawImage;
+    const cleaned = String(rawImage).replace(/^\/+/, "");
     const withoutPrefix = cleaned.replace(/^uploads[\\/]/i, "");
     return `${API_BASE}/uploads/${withoutPrefix}`;
   })();
@@ -42,6 +40,7 @@ export default function Explore() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
   const label = TITLES[kind] || "Explore";
 
   useEffect(() => {
@@ -49,7 +48,13 @@ export default function Explore() {
       setLoading(true);
       setErr("");
       try {
-        const list = await fetchList(kind);
+        // map "rooms" → "accomodation", otherwise use API path directly
+        const endpoint =
+          kind === "rooms" ? "accomodation" : kind === "jobs" ? "jobs" : "rides";
+
+        const res = await fetch(`${API_BASE}/${endpoint}`);
+        if (!res.ok) throw new Error(`Failed to fetch ${endpoint}`);
+        const list = await res.json();
         setItems(Array.isArray(list) ? list.map(normalize) : []);
       } catch (e) {
         setErr(e.message || "Failed to load");
@@ -79,7 +84,6 @@ export default function Explore() {
               className="mask"
               loading="lazy"
               onError={(e) => {
-                // prevent infinite loop if placeholder fails
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "/placeholder.png";
               }}
@@ -92,7 +96,9 @@ export default function Explore() {
               {it.location ? <> • {it.location}</> : null}
               {it.contact_email ? <> • {it.contact_email}</> : null}
             </div>
-            <a href="#" className="button">Read More</a>
+            <a href="#" className="button">
+              Read More
+            </a>
           </article>
         ))}
       </div>

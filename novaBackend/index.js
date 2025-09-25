@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import pkg from "pg"; // use pg instead of mysql
+import pkg from "pg"; // PostgreSQL
 import cors from "cors";
 import multer from "multer";
 import path from "path";
@@ -31,9 +31,10 @@ const app = express();
 // Static for uploaded files
 app.use("/uploads", express.static(uploadsDir));
 
-// CORS + JSON
+// ===== CORS + JSON =====
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  process.env.CLIENT_ORIGIN,  // your Vercel frontend
+  "http://localhost:3000",    // local React dev
   "http://127.0.0.1:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -47,6 +48,7 @@ app.use(
     optionsSuccessStatus: 200,
   })
 );
+
 app.use(express.json());
 
 // tiny logger
@@ -56,9 +58,14 @@ app.use((req, res, next) => {
 });
 
 // ===== Postgres (Neon) =====
+if (!process.env.DATABASE_URL) {
+  console.error("❌ DATABASE_URL is missing. Check your Render environment variables.");
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // required for Neon
+  connectionString: process.env.DATABASE_URL.trim(),
+  ssl: { rejectUnauthorized: false }, // Neon requires SSL
 });
 
 // ===== Multer (file uploads) =====
@@ -76,7 +83,7 @@ app.get("/", (req, res) => {
   res.json("Hey, I am the backend server connected to Neon 🚀!");
 });
 
-// LIST accomodation (approved only)
+// LIST accommodation (approved only)
 app.get("/accomodation", async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -84,12 +91,12 @@ app.get("/accomodation", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching accomodation:", err.message, err.stack);
+    console.error("Error fetching accomodation:", err.message);
     res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
 
-// CREATE accomodation
+// CREATE accommodation
 app.post("/accomodation", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
   if (!contact_email) return res.status(400).json({ error: "contact_email required" });
@@ -106,7 +113,7 @@ app.post("/accomodation", upload.single("photo"), async (req, res) => {
 
     res.json({ id: result.rows[0].id, status: "pending", message: "Accommodation submitted for review" });
   } catch (err) {
-    console.error("Insert accomodation error:", err.message, err.stack);
+    console.error("Insert accomodation error:", err.message);
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
@@ -119,7 +126,7 @@ app.get("/jobs", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching jobs:", err.message, err.stack);
+    console.error("Error fetching jobs:", err.message);
     res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
@@ -136,16 +143,11 @@ app.post("/jobs", upload.single("photo"), async (req, res) => {
       RETURNING id
     `;
     const result = await pool.query(sql, [
-      title,
-      descriptions,
-      locations,
-      Number(price) || null,
-      contact_email,
-      photoPath,
+      title, descriptions, locations, Number(price) || null, contact_email, photoPath,
     ]);
     res.json({ id: result.rows[0].id, status: "pending", message: "Job submitted for review" });
   } catch (err) {
-    console.error("Insert jobs error:", err.message, err.stack);
+    console.error("Insert jobs error:", err.message);
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
@@ -158,7 +160,7 @@ app.get("/rides", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching rides:", err.message, err.stack);
+    console.error("Error fetching rides:", err.message);
     res.status(500).json({ error: "Database Error!", details: err.message });
   }
 });
@@ -175,27 +177,22 @@ app.post("/rides", upload.single("photo"), async (req, res) => {
       RETURNING id
     `;
     const result = await pool.query(sql, [
-      title,
-      descriptions,
-      locations,
-      Number(price) || null,
-      contact_email,
-      photoPath,
+      title, descriptions, locations, Number(price) || null, contact_email, photoPath,
     ]);
     res.json({ id: result.rows[0].id, status: "pending", message: "Ride submitted for review" });
   } catch (err) {
-    console.error("Insert rides error:", err.message, err.stack);
+    console.error("Insert rides error:", err.message);
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
 
-// DELETE accomodation
+// DELETE accommodation
 app.delete("/accomodation/:id", async (req, res) => {
   try {
     await pool.query("DELETE FROM accomodation WHERE id = $1", [req.params.id]);
-    res.json({ message: "Accomodation has been deleted successfully." });
+    res.json({ message: "Accommodation has been deleted successfully." });
   } catch (err) {
-    console.error("Delete accomodation error:", err.message, err.stack);
+    console.error("Delete accommodation error:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
@@ -227,7 +224,7 @@ app.get("/admin-lite/pending", adminLite, async (req, res) => {
     const { rows } = await pool.query(sql);
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching pending items:", err.message, err.stack);
+    console.error("Error fetching pending items:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
@@ -246,7 +243,7 @@ app.patch("/admin-lite/:kind/:id/status", adminLite, async (req, res) => {
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
   } catch (err) {
-    console.error("Error updating status:", err.message, err.stack);
+    console.error("Error updating status:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
@@ -261,12 +258,12 @@ app.delete("/admin-lite/:kind/:id", adminLite, async (req, res) => {
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
   } catch (err) {
-    console.error("Error deleting row:", err.message, err.stack);
+    console.error("Error deleting row:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
 // ===== Start server =====
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`✅ Server is running on port ${PORT}`);
 });
