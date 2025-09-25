@@ -87,7 +87,7 @@ app.get("/", (req, res) => {
 app.get("/accomodation", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM accomodation WHERE status='approved' ORDER BY id DESC"
+      "SELECT * FROM accomodation WHERE ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
@@ -122,7 +122,7 @@ app.post("/accomodation", upload.single("photo"), async (req, res) => {
 app.get("/jobs", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM jobs WHERE status='approved' ORDER BY id DESC"
+      "SELECT * FROM jobs WHERE  ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
@@ -156,7 +156,7 @@ app.post("/jobs", upload.single("photo"), async (req, res) => {
 app.get("/rides", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM rides WHERE status='approved' ORDER BY id DESC"
+      "SELECT * FROM rides WHERE ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
