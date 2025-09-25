@@ -87,7 +87,7 @@ app.get("/", (req, res) => {
 app.get("/accomodation", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM accomodation WHERE ORDER BY id DESC"
+      "SELECT * FROM accomodation ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
@@ -122,7 +122,7 @@ app.post("/accomodation", upload.single("photo"), async (req, res) => {
 app.get("/jobs", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM jobs WHERE  ORDER BY id DESC"
+      "SELECT * FROM jobs  ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
@@ -156,7 +156,7 @@ app.post("/jobs", upload.single("photo"), async (req, res) => {
 app.get("/rides", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM rides WHERE ORDER BY id DESC"
+      "SELECT * FROM rides ORDER BY id DESC"
     );
     res.json(rows);
   } catch (err) {
@@ -210,13 +210,13 @@ function adminLite(req, res, next) {
 app.get("/admin-lite/pending", adminLite, async (req, res) => {
   const sql = `
     SELECT 'accomodation' AS kind, id, title, contact_email, created_time AS created_at
-    FROM accomodation WHERE status='pending'
+    FROM accomodation
     UNION ALL
     SELECT 'jobs' AS kind, id, title, contact_email, created_time
-    FROM jobs WHERE status='pending'
+    FROM jobs 
     UNION ALL
     SELECT 'rides' AS kind, id, title, contact_email, created_time
-    FROM rides WHERE status='pending'
+    FROM rides 
     ORDER BY created_at DESC
     LIMIT 200
   `;
