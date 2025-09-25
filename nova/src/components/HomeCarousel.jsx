@@ -42,7 +42,7 @@ export default function HomeCarousel() {
             <div className="home_slider_background" style={{ backgroundImage: "url(/assets/images/home_slider.jpg)" }} />
             <div className="home_slider_content text-center">
               <div className="home_slider_content_inner">
-                <h1>Find or Share</h1><h1>in Halifax</h1>
+                <h1>Find or Share</h1><h1>in Nova Scotia</h1>
               </div>
             </div>
           </div>
