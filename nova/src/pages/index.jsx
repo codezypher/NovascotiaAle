@@ -51,30 +51,34 @@ function Index() {
     };
   }, [status.message]);
 
-  // ✅ SUBMIT TO BACKEND (text-only)
+    // ✅ SUBMIT TO BACKEND (text + file)
   const onSubmit = async (e) => {
     e.preventDefault();
     setStatus({ message: "Posting...", variant: "info" });
 
     try {
+      // Use env var for production, fallback to localhost for dev
+      const API_BASE =
+        (process.env.REACT_APP_API_URL || "http://localhost:8800").replace(/\/+$/, "");
+
       const endpoint =
         activeTab === "accomodation"
-          ? "http://localhost:8800/accomodation"
+          ? `${API_BASE}/accomodation`
           : activeTab === "jobs"
-          ? "http://localhost:8800/jobs"
-          : "http://localhost:8800/rides";
+          ? `${API_BASE}/jobs`
+          : `${API_BASE}/rides`;
 
       const fd = new FormData();
       fd.append("title", form.title);
       fd.append("descriptions", form.descriptions);
       fd.append("locations", form.locations);
       fd.append("price", form.price);
-      fd.append("contact_email", form.contact_email)
+      fd.append("contact_email", form.contact_email);
       if (photo) fd.append("photo", photo);
 
       const res = await fetch(endpoint, { method: "POST", body: fd });
-
       const data = await res.json();
+
       if (res.ok) {
         const label = activeTab[0].toUpperCase() + activeTab.slice(1);
         setStatus({
@@ -82,7 +86,13 @@ function Index() {
           variant: "success",
         });
 
-        setForm({ title: "", descriptions: "", locations: "", price: "" , contact_email: "",});
+        setForm({
+          title: "",
+          descriptions: "",
+          locations: "",
+          price: "",
+          contact_email: "",
+        });
         setPhoto(null);
       } else {
         setStatus({
@@ -94,6 +104,7 @@ function Index() {
       setStatus({ message: err.message, variant: "danger" });
     }
   };
+
 
   return (
     <div>
