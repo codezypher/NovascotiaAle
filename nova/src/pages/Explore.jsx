@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import "./cards.css";
 
 // Map route param → title labels
-const TITLES = { rooms: "Rooms", jobs: "Jobs", rides: "Rides" };
+const TITLES = { rooms: "Rooms - Find your perfect stay", jobs: "Jobs", rides: "Rides" };
 const PRICE_LABEL = { rooms: "Price", jobs: "Salary", rides: "Fare" };
 
 // Use environment variable (from Vercel or .env.local)
@@ -67,7 +67,7 @@ export default function Explore() {
 
   return (
     <div className="container py-5">
-      <h2 className="mb-4">{label}</h2>
+      <h2 className="mb-4 innerheading">{label}</h2>
 
       {loading && <div>Loading…</div>}
       {!loading && err && <div style={{ color: "crimson" }}>{err}</div>}
@@ -76,32 +76,41 @@ export default function Explore() {
       )}
 
       <div className="cards-grid">
-        {items.map((it) => (
-          <article className="square" key={it.id}>
-            <img
-              src={it.imgSrc}
-              alt={it.title}
-              className="mask"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/placeholder.png";
-              }}
-            />
-            <div className="h1">{it.title}</div>
-            <p>{it.desc}</p>
-            <div className="meta">
-              {PRICE_LABEL[kind]}:{" "}
-              <strong>${Number(it.price || 0).toFixed(2)}</strong>
-              {it.location ? <> • {it.location}</> : null}
-              {it.contact_email ? <> • {it.contact_email}</> : null}
-            </div>
-            <a href="#" className="button">
-              Read More
-            </a>
-          </article>
-        ))}
+  {items.map((it) => (
+    <article className="square" key={it.id}>
+      <div className="image-wrapper">
+        <img
+          src={it.imgSrc}
+          alt={it.title}
+          className="mask"
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/placeholder.png";
+          }}
+        />
+        <span className="badge">🔥 Popular</span>
       </div>
+      <div className="content">
+        <div className="h1">{it.title}</div>
+        <p className="desc pt-2">{it.desc}</p>
+        <div className="meta pt-2">
+          {PRICE_LABEL[kind]}:{" "}
+          <strong>${Number(it.price || 0).toLocaleString()}</strong>
+          {it.location ? <> • {it.location}</> : null}
+          {it.contact_email ? <> • {it.contact_email}</> : null}
+        </div>
+        <div className="amenities my-3">
+          <span>🛏️</span> <span>🚿</span> <span>🍳</span>
+        </div>
+        <a href="#" className="button primary mt-3">
+          Book Now
+        </a>
+      </div>
+    </article>
+  ))}
+</div>
+
     </div>
   );
 }

@@ -403,7 +403,7 @@
 	}
 	.logo a img
 	{
-		width: 16px;
+		width: 50px;
 		margin-right: 7px;
 	}
 	.hamburger i
@@ -532,7 +532,12 @@
 	{
 		font-size: 13px;
 	}
+
+  .phoneslider {
+   padding-top: 60px!important;
+  }
 }
+
 
 /************
 11. 539px

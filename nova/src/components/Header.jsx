@@ -29,10 +29,10 @@ function Header() {
                 {/* 🔁 Router links instead of <a href> so styles/context persist */}
                 <div className="user_box ml-auto">
                   <div className="user_box_login user_box_link">
-                    <Link to="/account/login">login</Link>
+                    <Link to="login">login</Link>
                   </div>
                   <div className="user_box_register user_box_link">
-                    <Link to="/account/register">register</Link>
+                    <Link to="register">register</Link>
                   </div>
                 </div>
               </div>
