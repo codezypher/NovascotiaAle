@@ -20,23 +20,29 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
+      // ✅ Force email to lowercase before sending
+      const payload = {
+        ...form,
+        email: form.email.toLowerCase().trim(),
+      };
+
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      // Save token + role + email
+      // ✅ Save user details
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.role);
       localStorage.setItem("email", data.user.email);
       localStorage.setItem("name", data.user.name);
 
-      // Redirect depending on role
-      if (data.role.role === "admin") {
-        navigate("/");
+      // ✅ Redirect depending on role
+      if (data.user.role === "admin") {
+        navigate("/"); // later replace with /admin when dashboard ready
       } else {
         navigate("/");
       }
@@ -63,9 +69,7 @@ export default function Login() {
 
                 <form onSubmit={onSubmit}>
                   <div className="form-group">
-                    <label className="form-control-label text-muted">
-                      Email
-                    </label>
+                    <label className="form-control-label text-muted">Email</label>
                     <input
                       type="email"
                       name="email"
@@ -78,9 +82,7 @@ export default function Login() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-control-label text-muted">
-                      Password
-                    </label>
+                    <label className="form-control-label text-muted">Password</label>
                     <input
                       type="password"
                       name="password"
