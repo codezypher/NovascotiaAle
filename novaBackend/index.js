@@ -8,6 +8,8 @@ import cors from "cors";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { fileURLToPath } from "url";
 
 const { Pool } = pkg;
@@ -33,8 +35,8 @@ app.use("/uploads", express.static(uploadsDir));
 
 // ===== CORS + JSON =====
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN,  // your Vercel frontend
-  "http://localhost:3000",    // local React dev
+  process.env.CLIENT_ORIGIN,
+  "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -59,13 +61,13 @@ app.use((req, res, next) => {
 
 // ===== Postgres (Neon) =====
 if (!process.env.DATABASE_URL) {
-  console.error("❌ DATABASE_URL is missing. Check your Render environment variables.");
+  console.error("❌ DATABASE_URL is missing.");
   process.exit(1);
 }
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL.trim(),
-  ssl: { rejectUnauthorized: false }, // Neon requires SSL
+  ssl: { rejectUnauthorized: false },
 });
 
 // ===== Multer (file uploads) =====
@@ -78,12 +80,74 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ===== Routes =====
-app.get("/", (req, res) => {
-  res.json("Hey, I am the backend server connected to Neon 🚀!");
+// ===== Helpers =====
+function getUserIdFromToken(req) {
+  try {
+    const auth = req.headers["authorization"];
+    if (!auth?.startsWith("Bearer ")) return null;
+    const token = auth.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded.id;
+  } catch {
+    return null;
+  }
+}
+
+// ===== Auth Routes =====
+app.post("/auth/register", async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password)
+    return res.status(400).json({ error: "Missing fields" });
+
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, 'user') RETURNING id, name, email, role`,
+      [name, email, hash]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Register error:", err.message);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
 });
 
-// LIST accommodation (approved only)
+app.post("/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
+      email,
+    ]);
+    const user = result.rows[0];
+    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(400).json({ error: "Invalid credentials" });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (err) {
+    console.error("Login error:", err.message);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// ===== General Routes =====
+app.get("/", (req, res) => {
+  res.json("✅ NovaScotiaAle Backend is running!");
+});
+
+// LIST accommodation/jobs/rides
 app.get("/accomodation", async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -91,113 +155,108 @@ app.get("/accomodation", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching accomodation:", err.message);
-    res.status(500).json({ error: "Database Error!", details: err.message });
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
-// CREATE accommodation
+app.get("/jobs", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM jobs ORDER BY id DESC");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "DB error", details: err.message });
+  }
+});
+
+app.get("/rides", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM rides ORDER BY id DESC");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "DB error", details: err.message });
+  }
+});
+
+// CREATE accommodation/jobs/rides (with optional user_id)
 app.post("/accomodation", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
-  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
+  const userId = getUserIdFromToken(req); // NULL if not logged in
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     const sql = `
-      INSERT INTO accomodation (title, descriptions, locations, price, contact_email, photos, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      INSERT INTO accomodation (title, descriptions, locations, price, contact_email, photos, status, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,'pending',$7)
       RETURNING id
     `;
-    const values = [title, descriptions, locations, Number(price) || null, contact_email, photoPath];
-    const result = await pool.query(sql, values);
-
-    res.json({ id: result.rows[0].id, status: "pending", message: "Accommodation submitted for review" });
+    const result = await pool.query(sql, [
+      title,
+      descriptions,
+      locations,
+      Number(price) || null,
+      contact_email,
+      photoPath,
+      userId,
+    ]);
+    res.json({ id: result.rows[0].id, status: "pending" });
   } catch (err) {
-    console.error("Insert accomodation error:", err.message);
-    res.status(500).json({ error: "Database error", details: err.message });
-  }
-});
-
-// ===== JOBS =====
-app.get("/jobs", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM jobs  ORDER BY id DESC"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching jobs:", err.message);
-    res.status(500).json({ error: "Database Error!", details: err.message });
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
 app.post("/jobs", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
-  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
+  const userId = getUserIdFromToken(req);
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     const sql = `
-      INSERT INTO jobs (title, descriptions, locations, price, contact_email, photos, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      INSERT INTO jobs (title, descriptions, locations, price, contact_email, photos, status, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,'pending',$7)
       RETURNING id
     `;
     const result = await pool.query(sql, [
-      title, descriptions, locations, Number(price) || null, contact_email, photoPath,
+      title,
+      descriptions,
+      locations,
+      Number(price) || null,
+      contact_email,
+      photoPath,
+      userId,
     ]);
-    res.json({ id: result.rows[0].id, status: "pending", message: "Job submitted for review" });
+    res.json({ id: result.rows[0].id, status: "pending" });
   } catch (err) {
-    console.error("Insert jobs error:", err.message);
-    res.status(500).json({ error: "Database error", details: err.message });
-  }
-});
-
-// ===== RIDES =====
-app.get("/rides", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM rides ORDER BY id DESC"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching rides:", err.message);
-    res.status(500).json({ error: "Database Error!", details: err.message });
+    res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
 app.post("/rides", upload.single("photo"), async (req, res) => {
   const { title, descriptions, locations, price, contact_email } = req.body;
-  if (!contact_email) return res.status(400).json({ error: "contact_email required" });
+  const userId = getUserIdFromToken(req);
   const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     const sql = `
-      INSERT INTO rides (title, descriptions, locations, price, contact_email, photos, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      INSERT INTO rides (title, descriptions, locations, price, contact_email, photos, status, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,'pending',$7)
       RETURNING id
     `;
     const result = await pool.query(sql, [
-      title, descriptions, locations, Number(price) || null, contact_email, photoPath,
+      title,
+      descriptions,
+      locations,
+      Number(price) || null,
+      contact_email,
+      photoPath,
+      userId,
     ]);
-    res.json({ id: result.rows[0].id, status: "pending", message: "Ride submitted for review" });
+    res.json({ id: result.rows[0].id, status: "pending" });
   } catch (err) {
-    console.error("Insert rides error:", err.message);
-    res.status(500).json({ error: "Database error", details: err.message });
-  }
-});
-
-// DELETE accommodation
-app.delete("/accomodation/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM accomodation WHERE id = $1", [req.params.id]);
-    res.json({ message: "Accommodation has been deleted successfully." });
-  } catch (err) {
-    console.error("Delete accommodation error:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
-// ===== Admin-lite auth middleware =====
+// ===== Admin-lite middleware =====
 function adminLite(req, res, next) {
   const token = req.headers["x-admin-token"];
   if (!token || token !== process.env.ADMIN_DASH_TOKEN) {
@@ -206,64 +265,62 @@ function adminLite(req, res, next) {
   next();
 }
 
-// Admin-lite pending
+// Admin-lite routes
 app.get("/admin-lite/pending", adminLite, async (req, res) => {
   const sql = `
-    SELECT 'accomodation' AS kind, id, title, contact_email, created_time AS created_at
+    SELECT 'accomodation' AS kind, id, title, contact_email, created_time, user_id
     FROM accomodation
     UNION ALL
-    SELECT 'jobs' AS kind, id, title, contact_email, created_time
-    FROM jobs 
+    SELECT 'jobs' AS kind, id, title, contact_email, created_time, user_id
+    FROM jobs
     UNION ALL
-    SELECT 'rides' AS kind, id, title, contact_email, created_time
-    FROM rides 
-    ORDER BY created_at DESC
+    SELECT 'rides' AS kind, id, title, contact_email, created_time, user_id
+    FROM rides
+    ORDER BY created_time DESC
     LIMIT 200
   `;
   try {
     const { rows } = await pool.query(sql);
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching pending items:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
-// Admin-lite approve/reject
 app.patch("/admin-lite/:kind/:id/status", adminLite, async (req, res) => {
   const { kind, id } = req.params;
-  const { status } = req.body || {};
+  const { status } = req.body;
   if (!["approved", "rejected"].includes(status))
-    return res.status(400).json({ error: "Bad status" });
+    return res.status(400).json({ error: "Invalid status" });
 
-  const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
-
+  const table =
+    kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
   try {
-    const r = await pool.query(`UPDATE ${table} SET status=$1 WHERE id=$2`, [status, id]);
+    const r = await pool.query(`UPDATE ${table} SET status=$1 WHERE id=$2`, [
+      status,
+      id,
+    ]);
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
   } catch (err) {
-    console.error("Error updating status:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
-// Admin-lite delete
 app.delete("/admin-lite/:kind/:id", adminLite, async (req, res) => {
   const { kind, id } = req.params;
-  const table = kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
-
+  const table =
+    kind === "jobs" ? "jobs" : kind === "rides" ? "rides" : "accomodation";
   try {
     const r = await pool.query(`DELETE FROM ${table} WHERE id=$1`, [id]);
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
   } catch (err) {
-    console.error("Error deleting row:", err.message);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
 
-// ===== Start server =====
+// ===== Start Server =====
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

@@ -1,4 +1,3 @@
-// src/pages/Explore.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./cards.css";
@@ -7,8 +6,7 @@ import "./cards.css";
 const TITLES = { rooms: "Rooms - Find your perfect stay", jobs: "Jobs", rides: "Rides" };
 const PRICE_LABEL = { rooms: "Price", jobs: "Salary", rides: "Fare" };
 
-// Use environment variable (from Vercel or .env.local)
-// fallback to localhost for dev
+// API Base
 const API_BASE =
   process.env.REACT_APP_API_URL?.replace(/\/+$/, "") ||
   "https://novascotiaale.onrender.com";
@@ -32,7 +30,16 @@ function normalize(raw) {
     return `${API_BASE}/uploads/${withoutPrefix}`;
   })();
 
-  return { id: raw.id, title, desc, price, location, contact_email, imgSrc };
+  return {
+    id: raw.id,
+    title,
+    desc,
+    price,
+    location,
+    contact_email,
+    imgSrc,
+    user_id: raw.user_id, // <- important for "My Post" check
+  };
 }
 
 export default function Explore() {
@@ -42,6 +49,9 @@ export default function Explore() {
   const [err, setErr] = useState("");
 
   const label = TITLES[kind] || "Explore";
+
+  // Logged-in user id (from login response stored in localStorage)
+  const loggedInUserId = Number(localStorage.getItem("userId"));
 
   useEffect(() => {
     (async () => {
@@ -76,41 +86,46 @@ export default function Explore() {
       )}
 
       <div className="cards-grid">
-  {items.map((it) => (
-    <article className="square" key={it.id}>
-      <div className="image-wrapper">
-        <img
-          src={it.imgSrc}
-          alt={it.title}
-          className="mask"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = "/placeholder.png";
-          }}
-        />
-        <span className="badge">🔥 Popular</span>
+        {items.map((it) => (
+          <article className="square" key={it.id}>
+            <div className="image-wrapper">
+              <img
+                src={it.imgSrc}
+                alt={it.title}
+                className="mask"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/placeholder.png";
+                }}
+              />
+              {it.user_id === loggedInUserId ? (
+                <span className="badge" style={{ backgroundColor: "green" }}>
+                  ✅ My Post
+                </span>
+              ) : (
+                <span className="badge">🔥 Popular</span>
+              )}
+            </div>
+            <div className="content">
+              <div className="h1">{it.title}</div>
+              <p className="desc pt-2">{it.desc}</p>
+              <div className="meta pt-2">
+                {PRICE_LABEL[kind]}:{" "}
+                <strong>${Number(it.price || 0).toLocaleString()}</strong>
+                {it.location ? <> • {it.location}</> : null}
+                {it.contact_email ? <> • {it.contact_email}</> : null}
+              </div>
+              <div className="amenities my-3">
+                <span>🛏️</span> <span>🚿</span> <span>🍳</span>
+              </div>
+              <a href="#" className="button primary mt-3">
+                Book Now
+              </a>
+            </div>
+          </article>
+        ))}
       </div>
-      <div className="content">
-        <div className="h1">{it.title}</div>
-        <p className="desc pt-2">{it.desc}</p>
-        <div className="meta pt-2">
-          {PRICE_LABEL[kind]}:{" "}
-          <strong>${Number(it.price || 0).toLocaleString()}</strong>
-          {it.location ? <> • {it.location}</> : null}
-          {it.contact_email ? <> • {it.contact_email}</> : null}
-        </div>
-        <div className="amenities my-3">
-          <span>🛏️</span> <span>🚿</span> <span>🍳</span>
-        </div>
-        <a href="#" className="button primary mt-3">
-          Book Now
-        </a>
-      </div>
-    </article>
-  ))}
-</div>
-
     </div>
   );
 }
