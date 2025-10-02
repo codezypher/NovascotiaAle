@@ -133,8 +133,8 @@ app.post("/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Email and password required" });
     }
 
-    // ✅ Normalize email
-    const lowerEmail = email.toLowerCase();
+    // ✅ normalize email
+    const lowerEmail = email.toLowerCase().trim();
 
     // Check if user exists
     const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
@@ -143,7 +143,7 @@ app.post("/auth/login", async (req, res) => {
     const user = result.rows[0];
     if (!user) return res.status(400).json({ error: "Invalid credentials" });
 
-    // Compare password hash
+    // Compare password
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ error: "Invalid credentials" });
 
@@ -154,9 +154,15 @@ app.post("/auth/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // ✅ Return consistent structure
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error("Login error:", err.message);
