@@ -21,15 +21,20 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
+      // ✅ Normalize email to lowercase before sending
+      const payload = {
+        ...form,
+        email: form.email.toLowerCase().trim(),
+      };
+
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
 
-      // success → redirect to login
       alert("Account created successfully! Please log in.");
       navigate("/login");
     } catch (err) {
@@ -49,7 +54,9 @@ export default function Register() {
                 <div className="row justify-content-center px-3 mb-3">
                   <img id="logo" src="/assets/images/logo.png" alt="Logo" />
                 </div>
-                <h3 className="mb-5 text-center heading">CREATE YOUR ACCOUNT</h3>
+                <h3 className="mb-5 text-center heading">
+                  CREATE YOUR ACCOUNT
+                </h3>
 
                 {error && <div style={{ color: "red" }}>{error}</div>}
 
