@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE =
-  process.env.REACT_APP_API_URL?.replace(/\/+$/, "") ||
-  "http://localhost:8800";
+  process.env.REACT_APP_API_URL?.replace(/\/+$/, "") || "http://localhost:8800";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -29,13 +28,14 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      // Save token + role
+      // Save token + role + email
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("email", data.email);
+      localStorage.setItem("role", data.user.role);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("name", data.user.name);
 
       // Redirect depending on role
-      if (data.role === "admin") {
+      if (data.role.role === "admin") {
         navigate("/admin");
       } else {
         navigate("/");
