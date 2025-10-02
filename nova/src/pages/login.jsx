@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE =
-  process.env.REACT_APP_API_URL?.replace(/\/+$/, "") || "http://localhost:8800";
+  process.env.REACT_APP_API_URL?.replace(/\/+$/, "") ||
+  "http://localhost:8800";
+
 
 export default function Login() {
   const navigate = useNavigate();
