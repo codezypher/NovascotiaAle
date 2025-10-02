@@ -100,11 +100,22 @@ app.post("/auth/register", async (req, res) => {
     return res.status(400).json({ error: "Missing fields" });
 
   try {
+    // ✅ normalize email
+    const lowerEmail = email.toLowerCase().trim();
+
+    // Check if email already exists
+    const exists = await pool.query(`SELECT id FROM users WHERE email=$1`, [
+      lowerEmail,
+    ]);
+    if (exists.rows.length > 0) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, 'user') RETURNING id, name, email, role`,
-      [name, email, hash]
+      [name.trim(), lowerEmail, hash]
     );
 
     res.json(result.rows[0]);
@@ -113,6 +124,7 @@ app.post("/auth/register", async (req, res) => {
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
+
 
 app.post("/auth/login", async (req, res) => {
   try {
