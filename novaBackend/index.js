@@ -9,7 +9,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import { fileURLToPath } from "url";
 
 const { Pool } = pkg;
